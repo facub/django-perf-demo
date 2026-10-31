@@ -1,5 +1,6 @@
 import statistics
 import time
+import tracemalloc
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from django.test.utils import override_settings
 from shop import cases
 
 INDEXES = ["order_created_idx", "order_pending_created_idx"]
-RUNS = {"recent-orders": 5, "stuck-pending": 5, "revenue-by-category": 1}
+RUNS = {"recent-orders": 5, "stuck-pending": 5, "revenue-by-category": 1, "recalc-totals": 1}
 
 
 class _Rollback(Exception):
@@ -48,7 +49,14 @@ def measure(fn, runs):
             start = time.perf_counter()
             result = fn()
             timings.append(time.perf_counter() - start)
-    return statistics.median(timings), count, result
+
+    # Separate run for memory: tracemalloc slows Python down, so it would
+    # distort the timings above.
+    tracemalloc.start()
+    fn()
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    return statistics.median(timings), count, peak, result
 
 
 def normalize(case, result):
@@ -61,6 +69,10 @@ def fmt_ms(seconds):
     return f"{seconds * 1000:,.0f} ms" if seconds >= 0.01 else f"{seconds * 1000:.2f} ms"
 
 
+def fmt_mb(nbytes):
+    return f"{nbytes / 2**20:,.1f} MB" if nbytes >= 2**20 else f"{nbytes / 2**10:,.0f} KB"
+
+
 class Command(BaseCommand):
     help = "Benchmark every case before/after and write results/RESULTS.md."
 
@@ -68,20 +80,31 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         rows, plans = [], {}
         for case, (before, after) in cases.CASES.items():
+            reset, read_result = cases.WRITE_CASES.get(case, (None, None))
             after()  # warm-up so both versions hit a warm buffer cache
             with without_indexes():
-                t_before, q_before, r_before = measure(before, RUNS[case])
+                if reset:
+                    reset()
+                t_before, q_before, m_before, r_before = measure(before, RUNS[case])
+                if read_result:
+                    r_before = read_result()
                 if case == "stuck-pending":
                     plans["before"] = cases.stuck_pending_queryset().explain(analyze=True, buffers=True)
-            t_after, q_after, r_after = measure(after, RUNS[case])
+            if reset:
+                reset()
+            t_after, q_after, m_after, r_after = measure(after, RUNS[case])
+            if read_result:
+                r_after = read_result()
+                if None in r_after.values():
+                    raise RuntimeError(f"{case}: some rows were not updated")
             if case == "stuck-pending":
                 plans["after"] = cases.stuck_pending_queryset().explain(analyze=True, buffers=True)
 
             same = normalize(case, r_before) == normalize(case, r_after)
-            rows.append((case, t_before, q_before, t_after, q_after, same))
+            rows.append((case, t_before, q_before, m_before, t_after, q_after, m_after, same))
             self.stdout.write(
-                f"{case:22} before {fmt_ms(t_before):>10} ({q_before:,} queries)  "
-                f"after {fmt_ms(t_after):>10} ({q_after:,} queries)  "
+                f"{case:22} before {fmt_ms(t_before):>10} ({q_before:,} queries, {fmt_mb(m_before)})  "
+                f"after {fmt_ms(t_after):>10} ({q_after:,} queries, {fmt_mb(m_after)})  "
                 f"x{t_before / t_after:,.0f}  same_result={same}"
             )
 
@@ -97,14 +120,18 @@ class Command(BaseCommand):
             f"{pg_version}, {n_orders:,} orders, {n_items:,} order items. "
             "Median of several runs, warm cache, app and DB on the same machine.",
             "",
-            "| Case | Before | Queries | After | Queries | Speed-up | Same result |",
-            "|---|---:|---:|---:|---:|---:|:---:|",
+            "| Case | Before | Queries | Peak memory | After | Queries | Peak memory | Speed-up | Same result |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|:---:|",
         ]
-        for case, t_b, q_b, t_a, q_a, same in rows:
+        for case, t_b, q_b, m_b, t_a, q_a, m_a, same in rows:
             lines.append(
-                f"| {case} | {fmt_ms(t_b)} | {q_b:,} | {fmt_ms(t_a)} | {q_a:,} | "
+                f"| {case} | {fmt_ms(t_b)} | {q_b:,} | {fmt_mb(m_b)} | {fmt_ms(t_a)} | {q_a:,} | {fmt_mb(m_a)} | "
                 f"x{t_b / t_a:,.0f} | {'yes' if same else 'NO'} |"
             )
+        lines += [
+            "",
+            "Peak memory is Python-side allocation (tracemalloc) during one extra run of each version.",
+        ]
         lines += [
             "",
             "## stuck-pending: EXPLAIN (ANALYZE, BUFFERS)",

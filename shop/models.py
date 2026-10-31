@@ -28,6 +28,8 @@ class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="orders")
     status = models.CharField(max_length=10, choices=Status.choices)
     created_at = models.DateTimeField(default=timezone.now)
+    # Denormalized sum of the order's items, refreshed by a batch job (case 4).
+    total = models.DecimalField(max_digits=12, decimal_places=2, null=True)
 
     class Meta:
         indexes = [

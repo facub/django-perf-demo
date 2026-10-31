@@ -1,0 +1,57 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  body { padding: 52px 64px; }
+  h1 { font-size: 46px; font-weight: 800; letter-spacing: -0.02em; }
+  .sub { font-size: 21px; color: var(--muted); margin-top: 10px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 34px; }
+  .win { overflow: hidden; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.03); }
+  .bar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .bar i:nth-child(1) { background: #ff5f57; } .bar i:nth-child(2) { background: #febc2e; } .bar i:nth-child(3) { background: #28c840; }
+  .bar .file { margin-left: 12px; font-size: 14px; color: var(--muted); }
+  .bar .badge { margin-left: auto; font-size: 15px; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
+  .before .badge { color: var(--red); background: rgba(251,113,133,.12); border: 1px solid rgba(251,113,133,.35); }
+  .after .badge { color: var(--green); background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); }
+  pre { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 17.5px; line-height: 1.8; padding: 22px 24px; height: 372px; }
+  .k { color: #c792ea; } .f { color: #82aaff; } .s { color: #c3e88d; } .c { color: #64748b; font-style: italic; }
+  .n { color: #f78c6c; } .hl-r { background: rgba(251,113,133,.10); display: inline-block; width: 100%; }
+  .hl-g { background: rgba(52,211,153,.08); display: inline-block; width: 100%; }
+  .foot { margin-top: 26px; display: flex; justify-content: center; gap: 40px; font-size: 21px; color: var(--muted); }
+  .foot b { color: var(--fg); }
+</style></head>
+<body>
+  <h1>Same data. <span style="color:var(--red)">1,012</span> queries → <span class="grad">2</span>.</h1>
+  <p class="sub">A typical Django ORM N+1 fix, taken from my public case study</p>
+
+  <div class="row">
+    <div class="card win before">
+      <div class="bar"><i></i><i></i><i></i><span class="file mono">views.py</span><span class="badge mono">535 ms</span></div>
+<pre><span class="k">for</span> order <span class="k">in</span> Order.objects.<span class="f">order_by</span>(
+        <span class="s">"-created_at"</span>)[:<span class="n">200</span>]:
+<span class="hl-r">    order.customer.name     <span class="c"># +1 query</span></span>
+<span class="hl-r">    <span class="k">for</span> item <span class="k">in</span> order.items.<span class="f">all</span>(): <span class="c"># +1</span></span>
+<span class="hl-r">        item.product.name   <span class="c"># +1 query</span></span>
+
+<span class="c"># 1,012 queries per request</span>
+<span class="c"># nothing in the slow query log:</span>
+<span class="c"># each query is fast, the round</span>
+<span class="c"># trips are what hurt</span></pre>
+    </div>
+    <div class="card win after">
+      <div class="bar"><i></i><i></i><i></i><span class="file mono">views.py</span><span class="badge mono">11 ms</span></div>
+<pre>items = OrderItem.objects.<span class="f">select_related</span>(
+    <span class="s">"product"</span>)
+orders = (
+    Order.objects
+<span class="hl-g">    .<span class="f">select_related</span>(<span class="s">"customer"</span>)</span>
+<span class="hl-g">    .<span class="f">prefetch_related</span>(<span class="f">Prefetch</span>(<span class="s">"items"</span>, items))</span>
+    .<span class="f">order_by</span>(<span class="s">"-created_at"</span>)[:<span class="n">200</span>]
+)
+<span class="c"># 2 queries total</span>
+<span class="c"># + index on created_at for the LIMIT</span></pre>
+    </div>
+  </div>
+
+  <div class="foot"><span><b class="grad">48x faster</b></span><span><b>Identical output</b>, verified by benchmark</span><span><b>Ready-to-apply</b> fixes</span></div>
+</body></html>

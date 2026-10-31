@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  .head { text-align: center; }
+  h1 { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; margin-top: 22px; }
+  .pills { display: flex; justify-content: center; gap: 14px; margin-top: 20px; }
+  .pill { font-size: 18px; font-weight: 600; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); }
+  .pill::before { content: '✓'; color: var(--green); margin-right: 8px; }
+  .steps { display: grid; grid-template-columns: 1fr 48px 1fr 48px 1fr; align-items: stretch; margin-top: 44px; }
+  .step { padding: 30px 28px; position: relative; }
+  .num { position: absolute; top: 22px; right: 24px; font-size: 64px; font-weight: 800; color: rgba(255,255,255,0.06); }
+  .icon { width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center;
+          background: linear-gradient(135deg, rgba(56,189,248,.25), rgba(129,140,248,.25)); border: 1px solid rgba(56,189,248,.35); }
+  .icon svg { width: 30px; height: 30px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  h2 { font-size: 30px; font-weight: 700; margin-top: 20px; }
+  ul { list-style: none; margin-top: 16px; }
+  li { font-size: 19px; color: var(--muted); padding: 7px 0; border-top: 1px solid var(--border); }
+  li:first-child { border-top: 0; }
+  .arrow { display: grid; place-items: center; color: var(--accent); font-size: 32px; }
+</style></head>
+<body>
+  <div class="head">
+    <span class="eyebrow"><span class="dot"></span>How it works</span>
+    <h1>From slow to fast, <span class="grad">all in writing</span></h1>
+    <div class="pills"><span class="pill">100% async</span><span class="pill">No calls</span><span class="pill">No production access</span><span class="pill">NDA friendly</span></div>
+  </div>
+
+  <div class="steps">
+    <div class="card step"><span class="num">1</span>
+      <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 17v3h16v-3"/><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/></svg></div>
+      <h2>You send</h2>
+      <ul><li>Schema dump</li><li>pg_stat_statements or slow log</li><li>Which pages are slow</li></ul></div>
+    <div class="arrow">→</div>
+    <div class="card step"><span class="num">2</span>
+      <div class="icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg></div>
+      <h2>I analyze</h2>
+      <ul><li>EXPLAIN ANALYZE</li><li>Index review</li><li>ORM N+1 detection</li></ul></div>
+    <div class="arrow">→</div>
+    <div class="card step"><span class="num">3</span>
+      <div class="icon"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 14l3 3 5-6"/></svg></div>
+      <h2>You get</h2>
+      <ul><li>Prioritized written report</li><li>Ready-to-apply SQL + ORM fixes</li><li>Optional pull request</li></ul></div>
+  </div>
+</body></html>

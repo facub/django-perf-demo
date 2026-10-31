@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  h1 { font-size: 64px; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; margin-top: 26px; }
+  .sub { font-size: 24px; color: var(--muted); margin-top: 18px; }
+  .sub b { color: var(--fg); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 52px; }
+  .stat { padding: 26px 24px 24px; }
+  .gain { font-size: 54px; font-weight: 800; letter-spacing: -0.02em; }
+  .label { font-size: 18px; font-weight: 600; margin-top: 6px; }
+  .ba { margin-top: 18px; font-size: 17px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ba .b { color: var(--red); text-decoration: line-through; text-decoration-color: rgba(251,113,133,.5); }
+  .ba .a { color: var(--green); font-weight: 600; }
+  .ba .arrow { color: var(--muted); }
+  .foot { position: absolute; left: 72px; right: 72px; bottom: 44px; display: flex; justify-content: space-between; color: var(--muted); font-size: 18px; }
+  .foot .tags span { margin-left: 18px; }
+</style></head>
+<body>
+  <span class="eyebrow"><span class="dot"></span>PostgreSQL + Django performance</span>
+  <h1>Make your slow Django app<br><span class="grad">fast again.</span></h1>
+  <p class="sub">Slow queries, ORM N+1, missing indexes. <b>100% async, no calls.</b></p>
+
+  <div class="grid">
+    <div class="card stat"><div class="gain grad">50x</div><div class="label">Batch process</div>
+      <div class="ba mono"><span class="b">30+ h</span><span class="arrow">→</span><span class="a">35 min</span></div></div>
+    <div class="card stat"><div class="gain grad">554x</div><div class="label">Report query</div>
+      <div class="ba mono"><span class="b">17 s</span><span class="arrow">→</span><span class="a">31 ms</span></div></div>
+    <div class="card stat"><div class="gain grad">48x</div><div class="label">API endpoint</div>
+      <div class="ba mono"><span class="b">535 ms</span><span class="arrow">→</span><span class="a">11 ms</span></div></div>
+    <div class="card stat"><div class="gain grad">-99.8%</div><div class="label">BigQuery cost</div>
+      <div class="ba mono"><span class="b">$40/d</span><span class="arrow">→</span><span class="a">$0.05/d</span></div></div>
+  </div>
+
+  <div class="foot"><span>Real results from production work + a public case study</span>
+    <span class="tags mono"><span>EXPLAIN ANALYZE</span><span>pg_stat_statements</span><span>Django ORM</span></span></div>
+</body></html>
